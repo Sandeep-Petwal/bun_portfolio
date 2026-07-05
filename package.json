@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "bun index.ts",
+    "build": "bun build ./index.ts --outdir ./dist --minify --target bun",
+    "start": "bun ./dist/index.js",
     "dev": "bun --watch index.ts"
   },
   "devDependencies": {
