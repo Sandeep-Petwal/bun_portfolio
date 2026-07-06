@@ -49,12 +49,18 @@ const isDevelopment =
 const corsOriginStr = isDevelopment
   ? process.env.CORS_ALLOWED_ORIGINS_DEV ||
     process.env.CORS_ORIGIN_DEV ||
-    "http://localhost:*,http://127.0.0.1:*"
+    "http://localhost:*,http://127.0.0.1:*,https://*.sandeep.cv"
   : process.env.CORS_ALLOWED_ORIGINS ||
     process.env.CORS_ORIGIN_PROD ||
-    "https://*.sandeep.cv";
+    "https://*.sandeep.cv,https://sandeep.cv";
 
 const allowedOrigins = parseOriginList(corsOriginStr);
+
+console.log(
+  `CORS mode=${isDevelopment ? "development" : "production"} NODE_ENV=${
+    process.env.NODE_ENV || "(not set)"
+  } allowedOrigins=${allowedOrigins.join(",")}`
+);
 
 app.use(
   cors({
