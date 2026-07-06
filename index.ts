@@ -7,6 +7,39 @@ import { errorHandler } from "./src/middleware/error.middleware";
 const app = express();
 const port = process.env.PORT || 5000;
 
+const parseOriginList = (value: string) =>
+  value
+    .split(",")
+    .map((origin) => origin.trim().replace(/\/$/, ""))
+    .filter(Boolean);
+
+const wildcardToRegex = (pattern: string) =>
+  new RegExp(
+    `^${pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`,
+    "i"
+  );
+
+const isHttpOrigin = (value: string) => /^https?:\/\//i.test(value);
+
+const matchesAllowedOrigin = (origin: string, allowedOrigin: string) => {
+  const normalizedAllowedOrigin = allowedOrigin.trim().replace(/\/$/, "");
+
+  if (!normalizedAllowedOrigin || normalizedAllowedOrigin === "*") {
+    return false;
+  }
+
+  if (isHttpOrigin(normalizedAllowedOrigin)) {
+    return wildcardToRegex(normalizedAllowedOrigin).test(origin);
+  }
+
+  try {
+    const { hostname } = new URL(origin);
+    return wildcardToRegex(normalizedAllowedOrigin).test(hostname);
+  } catch {
+    return false;
+  }
+};
+
 // Setup CORS based on NODE_ENV (checking both standard and common typo spellings)
 const isDevelopment =
   !process.env.NODE_ENV ||
@@ -14,10 +47,14 @@ const isDevelopment =
   process.env.NODE_ENV === "developement";
 
 const corsOriginStr = isDevelopment
-  ? process.env.CORS_ORIGIN_DEV || "http://localhost:1010"
-  : process.env.CORS_ORIGIN_PROD || "https://new.sandeep.cv";
+  ? process.env.CORS_ALLOWED_ORIGINS_DEV ||
+    process.env.CORS_ORIGIN_DEV ||
+    "http://localhost:*,http://127.0.0.1:*"
+  : process.env.CORS_ALLOWED_ORIGINS ||
+    process.env.CORS_ORIGIN_PROD ||
+    "https://*.sandeep.cv";
 
-const allowedOrigins = corsOriginStr.split(",").map((origin) => origin.trim());
+const allowedOrigins = parseOriginList(corsOriginStr);
 
 app.use(
   cors({
@@ -25,7 +62,11 @@ app.use(
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
+      if (
+        allowedOrigins.some((allowedOrigin) =>
+          matchesAllowedOrigin(origin, allowedOrigin)
+        )
+      ) {
         return callback(null, true);
       }
 
