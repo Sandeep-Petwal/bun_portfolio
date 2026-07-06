@@ -7,6 +7,8 @@ import { errorHandler } from "./src/middleware/error.middleware";
 const app = express();
 const port = process.env.PORT || 5000;
 
+app.set("trust proxy", 1);
+
 const parseOriginList = (value: string) =>
   value
     .split(",")
